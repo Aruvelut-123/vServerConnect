@@ -55,7 +55,7 @@ public class UpdateChecker {
         checkForUpdates();
         
         // 设置定期检查
-        server.getScheduler().buildTask(plugin, this::checkForUpdates)
+        server.getScheduler().buildTask(plugin, () -> checkForUpdates())
             .repeat(checkIntervalHours, TimeUnit.HOURS)
             .schedule();
     }

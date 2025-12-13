@@ -47,6 +47,9 @@ public class StatsCommand implements SimpleCommand {
                     source.sendMessage(Component.text("Update checker is not available.", NamedTextColor.RED));
                 }
                 return;
+            } else if ("debug".equalsIgnoreCase(args[0])) {
+                debugModLoaderDetection(source);
+                return;
             } else if ("help".equalsIgnoreCase(args[0])) {
                 showHelp(source);
                 return;
@@ -115,6 +118,68 @@ public class StatsCommand implements SimpleCommand {
         return invocation.source().hasPermission("vserverconnect.stats");
     }
     
+    private void debugModLoaderDetection(CommandSource source) {
+        if (modLoaderDetector == null) {
+            source.sendMessage(Component.text("Mod loader detector is not available.", NamedTextColor.RED));
+            return;
+        }
+        
+        TextComponent.Builder debug = Component.text()
+            .append(Component.text("=== Client Detection Debug ===\n", NamedTextColor.GOLD));
+        
+        // 检查所有在线玩家的模组加载器状态
+        for (Player player : server.getAllPlayers()) {
+            debug.append(Component.text("Player: ", NamedTextColor.YELLOW))
+                 .append(Component.text(player.getUsername(), NamedTextColor.AQUA))
+                 .append(Component.newline())
+                 .append(Component.text("  Current Loader: ", NamedTextColor.GRAY))
+                 .append(Component.text(modLoaderDetector.getModLoader(player), NamedTextColor.WHITE))
+                 .append(Component.newline())
+                 .append(Component.text("  Delayed Loader: ", NamedTextColor.GRAY))
+                 .append(Component.text(modLoaderDetector.getModLoaderWithDelay(player), NamedTextColor.WHITE))
+                 .append(Component.newline())
+                 .append(Component.text("  Protocol Version: ", NamedTextColor.GRAY))
+                 .append(Component.text(player.getProtocolVersion().getName(), NamedTextColor.WHITE))
+                 .append(Component.newline())
+                 .append(Component.text("  Brand: ", NamedTextColor.GRAY))
+                 .append(Component.text(modLoaderDetector.getPlayerBrand(player), NamedTextColor.WHITE))
+                 .append(Component.newline());
+            
+            // 添加详细的客户端检测信息
+            String details = modLoaderDetector.getClientDetectionDetails(player);
+            String[] detailLines = details.split("\n");
+            for (String line : detailLines) {
+                if (line.contains(":")) {
+                    String[] parts = line.split(":", 2);
+                    debug.append(Component.text("  " + parts[0] + ": ", NamedTextColor.DARK_GRAY))
+                         .append(Component.text(parts[1].trim(), NamedTextColor.LIGHT_PURPLE))
+                         .append(Component.newline());
+                }
+            }
+            
+            debug.append(Component.text("  UUID: ", NamedTextColor.GRAY))
+                 .append(Component.text(player.getUniqueId().toString(), NamedTextColor.DARK_GRAY))
+                 .append(Component.newline())
+                 .append(Component.text("---", NamedTextColor.GRAY))
+                 .append(Component.newline());
+        }
+        
+        // 显示统计信息
+        Map<String, Integer> stats = modLoaderDetector.getDetectionStats();
+        if (!stats.isEmpty()) {
+            debug.append(Component.text("\nDetection Stats:\n", NamedTextColor.YELLOW));
+            for (Map.Entry<String, Integer> entry : stats.entrySet()) {
+                debug.append(Component.text("  ", NamedTextColor.GRAY))
+                     .append(Component.text(entry.getKey(), NamedTextColor.AQUA))
+                     .append(Component.text(": ", NamedTextColor.GRAY))
+                     .append(Component.text(entry.getValue(), NamedTextColor.WHITE))
+                     .append(Component.newline());
+            }
+        }
+        
+        source.sendMessage(debug.build());
+    }
+    
     private void showHelp(CommandSource source) {
         TextComponent.Builder help = Component.text()
             .append(Component.text("=== vServerConnect Commands ===\n", NamedTextColor.GOLD))
@@ -122,6 +187,8 @@ public class StatsCommand implements SimpleCommand {
             .append(Component.text(" - Show plugin statistics\n", NamedTextColor.WHITE))
             .append(Component.text("/vsc update", NamedTextColor.YELLOW))
             .append(Component.text(" - Check for updates\n", NamedTextColor.WHITE))
+            .append(Component.text("/vsc debug", NamedTextColor.YELLOW))
+            .append(Component.text(" - Debug mod loader detection\n", NamedTextColor.WHITE))
             .append(Component.text("/vsc help", NamedTextColor.YELLOW))
             .append(Component.text(" - Show this help message\n", NamedTextColor.WHITE))
             .append(Component.text("/lobby or /hub", NamedTextColor.YELLOW))

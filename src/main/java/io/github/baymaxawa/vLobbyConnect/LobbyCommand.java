@@ -27,10 +27,10 @@ public class LobbyCommand implements SimpleCommand {
     private ModLoaderDetector modLoaderDetector;
 
     @SuppressWarnings("unchecked")
-    public LobbyCommand(ProxyServer server, Logger logger) {
+    public LobbyCommand(ProxyServer server, Logger logger, Object plugin) {
         this.server = server;
         this.logger = logger;
-        this.modLoaderDetector = new ModLoaderDetector(server, logger);
+        this.modLoaderDetector = new ModLoaderDetector(server, logger, plugin);
         try {
             Yaml yaml = new Yaml();
             File configFile = new File("plugins/vServerConnect/config.yml");

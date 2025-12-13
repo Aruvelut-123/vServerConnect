@@ -1,27 +1,22 @@
 servers:
   # Vanilla servers for different Minecraft versions
-  1.20-VANILLA-1: "survival1"
-  1.20-VANILLA-2: "survival2"
-  1.19-VANILLA-1: "survival3"
-  1.8-VANILLA-1: "legacy1"
-  1.8-VANILLA-2: "legacy2"
+  1.20-VANILLA-1: "lobby"
+  1.19-VANILLA-1: "lobby"
+  1.8-VANILLA-1: "lobby"
   
   # ViaVersion servers (compatible with multiple versions)
-  VIA-VANILLA-1: "via1"
-  VIA-VANILLA-2: "via2"
+  VIA-VANILLA-1: "lobby"
   
-  # Modded servers
-  1.20.1-FORGE: "forge1"
-  1.20.1-FABRIC: "fabric1"
-  1.19.2-FORGE: "forge2"
-  1.19.2-FABRIC: "fabric2"
-  1.19.2-QUILT: "quilt1"
-  
-  # Additional examples (uncomment to use)
-  # 1.18.2-FORGE: "forge3"
-  # 1.18.2-FABRIC: "fabric3"
-  # 1.17.1-FORGE: "forge4"
-  # 1.16.5-FORGE: "forge5"
+  # Modded servers (using common server names that might exist)
+  1.20-FORGE: "lobby"
+  1.20-FABRIC: "lobby"
+  1.19-FORGE: "lobby"
+  1.19-FABRIC: "lobby"
+  1.20.1-FORGE: "lobby"
+  1.20.1-FABRIC: "lobby"
+  1.19.2-FORGE: "lobby"
+  1.19.2-FABRIC: "lobby"
+  1.19.2-QUILT: "lobby"
 
 # Server Configuration Pattern:
 # Format: VERSION-LOADER-NUMBER

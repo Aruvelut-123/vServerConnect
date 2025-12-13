@@ -61,7 +61,7 @@ public final class VelocityPlugin {
 		Metrics metrics = metricsFactory.make(this, pluginId);
 		
 		// 初始化模组加载器检测器
-		modLoaderDetector = new ModLoaderDetector(server, logger);
+		modLoaderDetector = new ModLoaderDetector(server, logger, this);
 		server.getEventManager().register(this, modLoaderDetector);
 
 		// 读取配置文件
@@ -189,8 +189,8 @@ public final class VelocityPlugin {
         }
 
         // Register commands
-		server.getCommandManager().register("hub", new HubCommand(server, logger));
-		server.getCommandManager().register("lobby", new LobbyCommand(server, logger));
+		server.getCommandManager().register("hub", new HubCommand(server, logger, this));
+		server.getCommandManager().register("lobby", new LobbyCommand(server, logger, this));
 		server.getCommandManager().register("vsc", new StatsCommand(server, logger, modLoaderDetector, updateChecker));
 	}
 
@@ -204,7 +204,9 @@ public final class VelocityPlugin {
 		// 获取版本信息
 		String protocolVersion = player.getProtocolVersion().getName();
 		String version = extractVersionFromProtocol(protocolVersion);
-		String loader = detectModLoader(player);
+		
+		// 获取模组加载器，使用带延迟的方法以获得更准确的结果
+		String loader = modLoaderDetector.getModLoaderWithDelay(player);
 		
 		// 构建服务器查找键
 		String serverKey = buildServerKey(version, loader);
@@ -243,8 +245,10 @@ public final class VelocityPlugin {
 			return;
 		}
 
+		// 记录连接信息，使用最终检测到的模组加载器
+		String finalLoader = modLoaderDetector.getModLoader(player);
 		logger.info("Player {} connecting to lobby '{}' (version: {}, loader: {})", 
-			player.getUsername(), targetServer.getServerInfo().getName(), version, loader);
+			player.getUsername(), targetServer.getServerInfo().getName(), version, finalLoader);
 		// Instead of a connection request, set the initial server directly:
 		event.setInitialServer(targetServer);
 	}
@@ -312,7 +316,7 @@ public final class VelocityPlugin {
 	// Helper: Detect mod loader from player connection
 	private String detectModLoader(Player player) {
 		if (modLoaderDetector != null) {
-			return modLoaderDetector.getModLoader(player);
+			return modLoaderDetector.getModLoaderWithDelay(player);
 		}
 		return "VANILLA";
 	}
