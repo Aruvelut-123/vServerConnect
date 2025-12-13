@@ -1,9 +1,60 @@
-lobbies:
-  1.20lobby1: "lobby1"
-  1.20lobby2: "lobby2"
-  1.8lobby1: "lobby3"
-  1.8lobby2: "lobby4"
+servers:
+  # Vanilla servers for different Minecraft versions
+  1.20-VANILLA-1: "survival1"
+  1.20-VANILLA-2: "survival2"
+  1.19-VANILLA-1: "survival3"
+  1.8-VANILLA-1: "legacy1"
+  1.8-VANILLA-2: "legacy2"
+  
+  # ViaVersion servers (compatible with multiple versions)
+  VIA-VANILLA-1: "via1"
+  VIA-VANILLA-2: "via2"
+  
+  # Modded servers
+  1.20.1-FORGE: "forge1"
+  1.20.1-FABRIC: "fabric1"
+  1.19.2-FORGE: "forge2"
+  1.19.2-FABRIC: "fabric2"
+  1.19.2-QUILT: "quilt1"
+  
+  # Additional examples (uncomment to use)
+  # 1.18.2-FORGE: "forge3"
+  # 1.18.2-FABRIC: "fabric3"
+  # 1.17.1-FORGE: "forge4"
+  # 1.16.5-FORGE: "forge5"
 
-# To add more lobbies, follow the pattern "VERSIONlobbyX"
-# Example:
-# 1.13lobby8: "lobby5"
+# Server Configuration Pattern:
+# Format: VERSION-LOADER-NUMBER
+# 
+# VERSION: Minecraft version (e.g., 1.20, 1.19, 1.8)
+#         Use "VIA" for ViaVersion compatible servers
+# 
+# LOADER: Mod loader type
+#   - VANILLA: No mods (standard Minecraft)
+#   - FORGE: Minecraft Forge mod loader
+#   - FABRIC: Fabric mod loader  
+#   - QUILT: Quilt mod loader
+#   - NEOFORGE: NeoForge mod loader
+# 
+# NUMBER: Server instance number (optional, for multiple servers of same type)
+# 
+# Examples:
+# - "1.20-VANILLA-1": First vanilla server for Minecraft 1.20
+# - "1.20-VANILLA-2": Second vanilla server for Minecraft 1.20
+# - "1.20.1-FORGE": Forge server for Minecraft 1.20.1
+# - "VIA-VANILLA-1": ViaVersion compatible server (works with multiple versions)
+# 
+# Notes:
+# - VIA servers are used as fallbacks when no exact version match is found
+# - Multiple servers of the same type enable load balancing
+# - Mod loader detection requires client-side support (Forge/Fabric/etc.)
+# - Configure corresponding server names in your velocity.toml
+
+# Update checking configuration
+update-check:
+  # Enable automatic update checking from GitHub
+  enabled: true
+  # Check interval in hours (minimum: 1 hour)
+  check-interval-hours: 6
+  # Notify admins in-game when updates are available
+  notify-admins: true

@@ -1,4 +1,4 @@
-package io.github.kmaba.vLobbyConnect;
+package io.github.baymaxawa.vLobbyConnect;
 
 public final class Constants {
 	public static final String VERSION = "{{ version }}";

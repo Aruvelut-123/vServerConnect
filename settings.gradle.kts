@@ -1,1 +1,1 @@
-rootProject.name = "vLobbyConnect"
+rootProject.name = "vServerConnect"

@@ -1,4 +1,4 @@
-package io.github.kmaba.vLobbyConnect;
+package io.github.baymaxawa.vLobbyConnect;
 
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.command.SimpleCommand;
@@ -24,39 +24,48 @@ public class LobbyCommand implements SimpleCommand {
     private final ProxyServer server;
     private final Logger logger;
     private final Map<String, List<RegisteredServer>> versionLobbies = new HashMap<>();
+    private ModLoaderDetector modLoaderDetector;
 
     @SuppressWarnings("unchecked")
     public LobbyCommand(ProxyServer server, Logger logger) {
         this.server = server;
         this.logger = logger;
+        this.modLoaderDetector = new ModLoaderDetector(server, logger);
         try {
             Yaml yaml = new Yaml();
-            File configFile = new File("plugins/vLobbyConnect/config.yml");
+            File configFile = new File("plugins/vServerConnect/config.yml");
             if (!configFile.exists()) {
                 configFile.getParentFile().mkdirs();
                 Files.copy(getClass().getResourceAsStream("/config.yml"), configFile.toPath());
-                // Removed config logging
             }
             Map<String, Object> config = yaml.load(Files.newInputStream(configFile.toPath()));
-            Map<String, String> lobbies = (Map<String, String>) config.get("lobbies");
-            if (lobbies == null) {
-                logger.error("Failed to load valid lobby settings from config file.");
+            Map<String, String> servers = (Map<String, String>) config.get("servers");
+            if (servers == null) {
+                logger.error("Failed to load valid server settings from config file.");
             } else {
-                Pattern pattern = Pattern.compile("^(\\d+\\.\\d+)lobby(\\d+)$");
-                for (Map.Entry<String, String> entry : lobbies.entrySet()) {
-                    Matcher matcher = pattern.matcher(entry.getKey());
+                // 使用与主插件相同的正则表达式
+                Pattern pattern = Pattern.compile("^((VIA)-)?((?:\\d+(?:\\.\\d+)*)-)?([A-Z]+)(?:-(\\d+))?$");
+                for (Map.Entry<String, String> entry : servers.entrySet()) {
+                    String configKey = entry.getKey();
+                    Matcher matcher = pattern.matcher(configKey);
+                    
                     if (matcher.matches()) {
-                        String version = matcher.group(1);
-                        String lobbyName = entry.getValue();
-                        Optional<RegisteredServer> serverOpt = server.getServer(lobbyName);
+                        String viaPrefix = matcher.group(1);
+                        String via = matcher.group(2);
+                        String versionWithDash = matcher.group(3);
+                        String loader = matcher.group(4);
+                        
+                        String version = (versionWithDash != null && versionWithDash.endsWith("-"))
+                            ? versionWithDash.substring(0, versionWithDash.length() - 1)
+                            : null;
+                        
+                        String versionIdentifier = (via != null) ? "VIA" : version;
+                        
+                        String serverName = entry.getValue();
+                        Optional<RegisteredServer> serverOpt = server.getServer(serverName);
                         if (serverOpt.isPresent()) {
-                            versionLobbies.computeIfAbsent(version, k -> new ArrayList<>()).add(serverOpt.get());
-                            // Removed config logging
-                        } else {
-                            // Removed config logging for missing lobby server
+                            versionLobbies.computeIfAbsent(versionIdentifier, k -> new ArrayList<>()).add(serverOpt.get());
                         }
-                    } else {
-                        logger.warn("Invalid lobby configuration key: {}", entry.getKey());
                     }
                 }
             }
@@ -77,23 +86,27 @@ public class LobbyCommand implements SimpleCommand {
         }
 
         Player player = (Player) source;
-        String version = player.getProtocolVersion().getName();
-        List<RegisteredServer> lobbies = versionLobbies.get(version);
+        String protocolVersion = player.getProtocolVersion().getName();
+        String version = extractVersionFromProtocol(protocolVersion);
+        String loader = detectModLoader(player);
+        String serverKey = buildServerKey(version, loader);
+        
+        List<RegisteredServer> lobbies = versionLobbies.get(serverKey);
         if (lobbies == null || lobbies.isEmpty()) {
-            lobbies = getFallbackLobbies(version);
+            lobbies = getFallbackLobbies(version, loader);
         }
 
         if (lobbies == null || lobbies.isEmpty()) {
-            player.sendMessage(Component.text("No lobbies available for your Minecraft version."));
-            logger.warn("No lobbies available for version {}", version);
+            player.sendMessage(Component.text("No servers available for your Minecraft version or loader."));
+            logger.warn("No servers available for version {} or loader {}", version, loader);
             return;
         }
 
         RegisteredServer targetServer = getLeastLoadedLobby(lobbies);
 
         if (targetServer == null) {
-            player.sendMessage(Component.text("All lobbies are full, please try again later."));
-            logger.warn("All lobbies are full for version {}", version);
+            player.sendMessage(Component.text("All servers are currently unavailable, please try again later."));
+            logger.warn("All servers are unavailable for version {} or loader {}", version, loader);
             return;
         }
 
@@ -105,7 +118,8 @@ public class LobbyCommand implements SimpleCommand {
             return;
         }
 
-        logger.info("Player {} connecting to lobby '{}'", player.getUsername(), targetServer.getServerInfo().getName());
+        logger.info("Player {} connecting to lobby '{}' (version: {}, loader: {})", 
+            player.getUsername(), targetServer.getServerInfo().getName(), version, loader);
         player.createConnectionRequest(targetServer).fireAndForget();
     }
 
@@ -134,12 +148,52 @@ public class LobbyCommand implements SimpleCommand {
     }
 
     // Helper: Fallback to the highest available lobby version when an exact match is missing.
-    private List<RegisteredServer> getFallbackLobbies(String playerVersion) {
-        return versionLobbies.entrySet().stream()
-                .filter(entry -> compareVersions(entry.getKey(), playerVersion) <= 0)
-                .max((a, b) -> compareVersions(a.getKey(), b.getKey()))
-                .map(Map.Entry::getValue)
-                .orElse(null);
+    private List<RegisteredServer> getFallbackLobbies(String playerVersion, String loader) {
+        // 首先尝试同版本的其他加载器
+        for (Map.Entry<String, List<RegisteredServer>> entry : versionLobbies.entrySet()) {
+            String key = entry.getKey();
+            if (key.equals("VIA")) {
+                return entry.getValue();
+            }
+            if (key.startsWith(playerVersion)) {
+                return entry.getValue();
+            }
+        }
+        
+        // 然后尝试VIA服务器
+        List<RegisteredServer> viaServers = versionLobbies.get("VIA");
+        if (viaServers != null && !viaServers.isEmpty()) {
+            return viaServers;
+        }
+        
+        return null;
+    }
+    
+    // Helper: Extract version from protocol version name
+    private String extractVersionFromProtocol(String protocolVersion) {
+        if (protocolVersion.contains(".")) {
+            String[] parts = protocolVersion.split("\\.");
+            if (parts.length >= 2) {
+                return parts[0] + "." + parts[1];
+            }
+        }
+        return protocolVersion;
+    }
+    
+    // Helper: Detect mod loader from player connection
+    private String detectModLoader(Player player) {
+        if (modLoaderDetector != null) {
+            return modLoaderDetector.getModLoader(player);
+        }
+        return "VANILLA";
+    }
+    
+    // Helper: Build server key from version and loader
+    private String buildServerKey(String version, String loader) {
+        if ("VIA".equals(version)) {
+            return "VIA-" + loader;
+        }
+        return version + "-" + loader;
     }
 
     // Helper: Compare version strings (e.g. "1.8" vs "1.21.1")

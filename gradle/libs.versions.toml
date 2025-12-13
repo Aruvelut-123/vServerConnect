@@ -12,6 +12,7 @@ runvelocity = "2.3.1"
 
 # Utility Libraries
 bstats = "3.0.2"
+gson = "2.10.1"
 
 [libraries]
 
@@ -19,6 +20,8 @@ bstats = "3.0.2"
 velocity = { group = "com.velocitypowered", name = "velocity-api", version.ref = "velocity" }
 
 bstats = { module = "org.bstats:bstats-velocity", version.ref = "bstats" }
+
+gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 
 [plugins]
 

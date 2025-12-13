@@ -1,0 +1,98 @@
+name: Automated Release on Push to Main
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Cache Gradle packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+      
+    - name: Extract version from tag
+      run: |
+        echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+        
+    - name: Build with Gradle
+      run: ./gradlew build
+      
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # Generate changelog from git commits since last tag
+        LAST_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+        if [ -n "$LAST_TAG" ]; then
+          CHANGELOG=$(git log --pretty=format:"- %s (%h)" $LAST_TAG..HEAD)
+        else
+          CHANGELOG=$(git log --pretty=format:"- %s (%h)")
+        fi
+        echo "changelog<<EOF" >> $GITHUB_OUTPUT
+        echo "$CHANGELOG" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        
+    - name: Create Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: vServerConnect v${{ env.VERSION }}
+        body: |
+          ## Changes in v${{ env.VERSION }}
+          
+          ${{ steps.changelog.outputs.changelog }}
+          
+          ## Download
+          - Download the jar file below
+          - Place it in your `plugins/` folder
+          - Restart your Velocity proxy
+          
+          ## Installation
+          1. Download `vServerConnect-${{ env.VERSION }}.jar`
+          2. Place it in `plugins/vServerConnect/`
+          3. Configure your servers in `plugins/vServerConnect/config.yml`
+          4. Restart your proxy
+          
+          ## Support
+          - [GitHub Issues](https://github.com/Aruvelut-123/vServerConnect/issues)
+          - [Discord](https://discord.gg/) <!-- Add your Discord link if available -->
+        draft: false
+        prerelease: false
+        
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: build/libs/vServerConnect-${{ env.VERSION }}.jar
+        asset_name: vServerConnect-${{ env.VERSION }}.jar
+        asset_content_type: application/java-archive
+        
+    - name: Update latest version tag
+      run: |
+        git tag -f latest
+        git push origin latest --force
