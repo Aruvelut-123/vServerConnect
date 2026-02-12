@@ -1,3 +1,5 @@
+# Archived casue personal issue
+
 # vServerConnect – The Ultimate Server Manager for Velocity Proxy  
 
 vServerConnect is a **powerful and lightweight Velocity plugin** designed to seamlessly manage lobby connections for **players using different Minecraft protocol versions and different mod loaders**. Whether your server supports multiple Minecraft versions or needs efficient load balancing or has vanilla and mod servers on one velocity frontend, vServerConnect ensures players are sent to the **correct server** every time.  
